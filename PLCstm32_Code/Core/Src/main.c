@@ -137,7 +137,7 @@ int main(void)
  UART1_Init();
 
 
-/*
+
 
   while (1)
   {
@@ -147,7 +147,7 @@ int main(void)
   }
 
 
-*/
+
 
 
 
