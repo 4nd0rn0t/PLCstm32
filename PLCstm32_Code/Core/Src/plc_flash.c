@@ -5,12 +5,12 @@
  *      Author: Yo
  */
 
+#include <config.h>
 #include <string.h>
 
 #include "stm32c0xx_hal.h"
 
 #include "plc_flash.h"
-#include "plc_config.h"
 
 
 
@@ -47,8 +47,6 @@ const uint8_t user_program[] =
 		U16(200)
 
 	};
-
-
 
 
 

@@ -8,7 +8,7 @@
 #ifndef INC_PLC_NUCLEO_H_
 #define INC_PLC_NUCLEO_H_
 
-#include "plc_config.h"
+#include <config.h>
 
 #define MAX_BLOCKS	 200  		// 200 comprobar final si afecta ,300 Ajusta según RAM, ver si ampliar
 
