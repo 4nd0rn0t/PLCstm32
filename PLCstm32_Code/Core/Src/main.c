@@ -137,7 +137,7 @@ int main(void)
  UART1_Init();
 
 
-
+/*
 
   while (1)
   {
@@ -146,7 +146,7 @@ int main(void)
       for (volatile int i = 0; i < 200000; i++);
   }
 
-
+*/
 
 
 
