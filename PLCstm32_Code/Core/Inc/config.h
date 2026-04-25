@@ -10,6 +10,12 @@
 
 #include <stdint.h>
 
+
+
+#define LED_PIN_NUM      6U
+#define PULSADOR_PIN_NUM 8U
+
+
 /* =========================================================
 			Definición de flags del systema
 ========================================================= */
@@ -136,8 +142,10 @@ typedef enum {
  	 	 	 Variable global
 ========================================================= */
 
-extern volatile SystemMode_t mode;
+extern volatile uint32_t msTicks;
+uint32_t millis(void);
 
+extern volatile SystemMode_t mode;
 
 
 

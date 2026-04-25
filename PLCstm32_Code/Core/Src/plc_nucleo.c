@@ -228,10 +228,10 @@ void execute_block(Block16 *b, uint8_t i)
 
 		if (state[i] == 0)
 			{
-				state[i] = HAL_GetTick();
+				state[i] = millis();
 
 			}
-				if ((HAL_GetTick() - state[i]) >= b->param_A * base)
+				if ((millis() - state[i]) >= b->param_A * base)
 					out = 1;
 				} else {
 					state[i] = 0;
@@ -259,10 +259,10 @@ void execute_block(Block16 *b, uint8_t i)
 
 				if (s1) {
 					out = 1;
-						state[i] = HAL_GetTick();
+						state[i] = millis();
 						} else {
 							//revisar posible mal
-							out = ((HAL_GetTick() - state[i]) < b->param_A * base);
+							out = ((millis() - state[i]) < b->param_A * base);
 						}
 					  	break;
 			}
@@ -285,11 +285,11 @@ void execute_block(Block16 *b, uint8_t i)
 			uint32_t base = get_time_base(b->cfg);
 
 				if (rising_edge(i, s1)) {
-					state[i] = HAL_GetTick();
+					state[i] = millis();
 					flags[i] |= FLAG_OUT;
 				}
 
-				if ((HAL_GetTick() - state[i]) >= b->param_A * base)
+				if ((millis() - state[i]) >= b->param_A * base)
 					flags[i] &= ~FLAG_OUT;
 
 				  	  out = (flags[i] & FLAG_OUT) != 0;
@@ -304,7 +304,7 @@ void execute_block(Block16 *b, uint8_t i)
 	case OP_T_BLINK:
 	{
 	    uint32_t base = get_time_base(b->cfg);
-	    uint32_t now  = HAL_GetTick();
+	    uint32_t now  = millis();
 
 	    // Reset total si IN=0
 	    if (!s1)
@@ -366,7 +366,7 @@ void execute_block(Block16 *b, uint8_t i)
 	case OP_T_SWEEP:
 	{
 	    uint32_t base = get_time_base(b->cfg);
-	    uint32_t now  = HAL_GetTick();
+	    uint32_t now  = millis();
 
 	    // Si entrada = 0 → salida inmediata a 0 + reset
 	    if (!s1)
@@ -409,7 +409,7 @@ void execute_block(Block16 *b, uint8_t i)
 	case OP_T_SWEEP_EDGE:
 	{
 	    uint32_t base = get_time_base(b->cfg);
-	    uint32_t now  = HAL_GetTick();
+	    uint32_t now  = millis();
 
 	    uint32_t TL = b->param_A * base;
 	    uint32_t TH = b->param_B * base;
@@ -455,7 +455,7 @@ void execute_block(Block16 *b, uint8_t i)
 	case OP_T_RANDOM:
 	{
 	    uint32_t base = get_time_base(b->cfg);
-	    uint32_t now  = HAL_GetTick();
+	    uint32_t now  = millis();
 
 	    uint32_t TH = b->param_A * base;
 	    uint32_t TL = b->param_B * base;

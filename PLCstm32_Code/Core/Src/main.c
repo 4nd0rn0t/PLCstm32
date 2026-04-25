@@ -17,6 +17,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <config.h>
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -27,7 +28,6 @@
 
 #include "bootloader.h"
 
-#include "plc_config.h"
 #include "mcp23017.h"
 #include "terminal.h"
 
@@ -58,9 +58,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-I2C_HandleTypeDef hi2c1;
-
-UART_HandleTypeDef huart1;
+//UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 
@@ -72,10 +70,16 @@ UART_HandleTypeDef huart1;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_USART1_UART_Init(void);
-static void MX_I2C1_Init(void);
+
 /* USER CODE BEGIN PFP */
+
+void GPIO_Init(void);
+
+void UART1_Init(void);
+void UART1_EnableIRQ(void);
+
+void I2C1_Init(void);
+
 
 /* USER CODE END PFP */
 
@@ -84,11 +88,16 @@ static void MX_I2C1_Init(void);
 
 
 
+
+
+
+
 /* =========================================================
 			ESTADO GLOBAL
 ========================================================= */
+
 void execute_block(Block16 *b, uint8_t i);
-uint8_t rx_byte;
+
 
 /* USER CODE END 0 */
 
@@ -108,36 +117,52 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+
 
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
 
   /* Configure the system clock */
-  SystemClock_Config();
+
+ SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_USART1_UART_Init();
-  MX_I2C1_Init();
+
+ GPIO_Init();
+ UART1_Init();
+
+
+/*
+
+  while (1)
+  {
+      while (!(USART1->ISR & USART_ISR_TXE_TXFNF));
+      USART1->TDR = 'A';
+      for (volatile int i = 0; i < 200000; i++);
+  }
+
+
+*/
+
+
+
   /* USER CODE BEGIN 2 */
 
-  RCC->APBENR1 |= RCC_APBENR1_I2C1EN;
+  I2C1_Init();
 
-  RCC->APBRSTR1 |= RCC_APBRSTR1_I2C1RST;
-  RCC->APBRSTR1 &= ~RCC_APBRSTR1_I2C1RST;
-
-  I2C1->TIMINGR = 0x00303D5B;
-
-  I2C1->CR1 |= I2C_CR1_PE;
+//  UART1_EnableIRQ();
 
   system_start();     // decide BOOT o PLC (bloqueante)
 
+
+ // SystemCoreClockUpdate();
+//  SysTick_Config(SystemCoreClock / 1000);
+ // __enable_irq();
 
   /* USER CODE END 2 */
 
@@ -160,12 +185,12 @@ void plc_run(void)
 	plc_init();
 	rng_init();
 
-//1
-
     while (1)
     {
 
+
     	if (system_flags & MCP23017_OK_FLAG)
+
 
     		     {
     		         // El chip responde
@@ -236,11 +261,11 @@ void plc_run(void)
 
     		     }
 
+
     		  Terminal_Imprimir(I, Q, mode);
     }
 
-}
-
+//}
 
 
 
@@ -251,103 +276,35 @@ void plc_run(void)
 
 
 
+
+
+
+
+
+
+
+
+
+
   /* USER CODE END 3 */
-//}
+}
 
 /**
   * @brief System Clock Configuration
   * @retval None
   */
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  __HAL_FLASH_SET_LATENCY(FLASH_LATENCY_1);
-
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSIDiv = RCC_HSI_DIV1;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-  RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV1;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-}
-
-/**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C1_Init(void)
-{
-
-  /* USER CODE BEGIN I2C1_Init 0 */
-
-  /* USER CODE END I2C1_Init 0 */
-
-  /* USER CODE BEGIN I2C1_Init 1 */
-
-  /* USER CODE END I2C1_Init 1 */
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x0090194B;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Analogue filter
-  */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Digital filter
-  */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C1_Init 2 */
-
-  /* USER CODE END I2C1_Init 2 */
-
-}
 
 /**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
   */
+
+/*
 static void MX_USART1_UART_Init(void)
 {
-
+*/
   /* USER CODE BEGIN USART1_Init 0 */
 
   /* USER CODE END USART1_Init 0 */
@@ -355,6 +312,7 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE BEGIN USART1_Init 1 */
 
   /* USER CODE END USART1_Init 1 */
+	/*
   huart1.Instance = USART1;
   huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
@@ -382,79 +340,114 @@ static void MX_USART1_UART_Init(void)
   {
     Error_Handler();
   }
+
+  */
   /* USER CODE BEGIN USART1_Init 2 */
 
-  // habilitar interrupción RX
-  USART1->CR1 |= USART_CR1_RXNEIE_RXFNEIE;  // puesto por mi
 
-  // habilitar NVIC
-  NVIC_EnableIRQ(USART1_IRQn);		// puesto por mi
 
 
   /* USER CODE END USART1_Init 2 */
 
-}
+
 
 /**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
   */
+
+/*
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  */
   /* USER CODE BEGIN MX_GPIO_Init_1 */
 
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+
+/*
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
 
+*/
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 
+/*
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+*/
   /*Configure GPIO pin : Button_Pin */
+/*
   GPIO_InitStruct.Pin = Button_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(Button_GPIO_Port, &GPIO_InitStruct);
+*/
 
   /*Configure GPIO pins : PA2 PA3 */
+/*
   GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Alternate = GPIO_AF1_USART2;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
+*/
   /*Configure GPIO pins : PA4 PA5 PA6 PA7 */
+/*
   GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Alternate = GPIO_AF0_SPI1;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
+*/
   /*Configure GPIO pin : Pulsador_Pin */
+/*
   GPIO_InitStruct.Pin = Pulsador_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(Pulsador_GPIO_Port, &GPIO_InitStruct);
-
+*/
   /*Configure GPIO pin : LED_Pin */
+/*
   GPIO_InitStruct.Pin = LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
+*/
+  /*Configure GPIO pin : PB7 */
+/*
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF14_I2C1;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+*/
+
+  /*Configure GPIO pin : PC14 */
+/*
+  GPIO_InitStruct.Pin = GPIO_PIN_14;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF14_I2C1;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+*/
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
   /* USER CODE END MX_GPIO_Init_2 */
+/*
 }
+*/
 
 /* USER CODE BEGIN 4 */
 

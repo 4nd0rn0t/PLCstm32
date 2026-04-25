@@ -8,9 +8,9 @@
 #ifndef INC_TERMINAL_H_
 #define INC_TERMINAL_H_
 
+#include <config.h>
 #include <stdint.h>
 
-#include "plc_config.h"
 
 //void UART_Print(char *msg);
 const char* MCP23017_ModeToString(SystemMode_t mode);
