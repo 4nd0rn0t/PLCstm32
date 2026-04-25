@@ -18,14 +18,11 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include <config.h>
 #include "main.h"
-
-
+#include "stm32c0xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
-#include "stm32c0xx_it.h"
 
 /* USER CODE END Includes */
 
@@ -62,7 +59,7 @@ void uart_process_byte(uint8_t byte);
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-//extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -134,12 +131,8 @@ void SysTick_Handler(void)
   /* USER CODE BEGIN SysTick_IRQn 0 */
 
   /* USER CODE END SysTick_IRQn 0 */
- //
-//HAL_IncTick();
-
-/* USER CODE BEGIN SysTick_IRQn 1 */
-
-	msTicks++;
+  HAL_IncTick();
+  /* USER CODE BEGIN SysTick_IRQn 1 */
 
   /* USER CODE END SysTick_IRQn 1 */
 }
@@ -159,7 +152,21 @@ void USART1_IRQHandler(void)
   /* USER CODE BEGIN USART1_IRQn 0 */
 
   /* USER CODE END USART1_IRQn 0 */
-  //HAL_UART_IRQHandler(&huart1);
+//  HAL_UART_IRQHandler(&huart1);			// quitado por mi
+											// puesto por mi
+	 if (USART1->ISR & USART_ISR_RXNE_RXFNE)
+	    {
+	        uint8_t byte = (uint8_t)USART1->RDR;
+
+	        uart_process_byte(byte);
+	    }
+
+	    if (USART1->ISR & USART_ISR_ORE)
+	    {
+	        USART1->ICR |= USART_ICR_ORECF;
+	    }
+
+
   /* USER CODE BEGIN USART1_IRQn 1 */
 
   /* USER CODE END USART1_IRQn 1 */

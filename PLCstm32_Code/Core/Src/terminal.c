@@ -12,27 +12,23 @@
 #include "terminal.h"
 
 
-//extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart1;
 
 static uint8_t ultima_I = 0xFF;
 static uint8_t ultima_Q  = 0xFF;
 static SystemMode_t ultimo_mode = MODE_UNKNOWN;
 
 
-void UART_SendChar(char c)
+
+void UART_Print(const char *str)
 {
-    while (!(USART1->ISR & USART_ISR_TXE_TXFNF));
-    USART1->TDR = c;
+    HAL_UART_Transmit(&huart1,
+                      (uint8_t*)str,
+                      strlen(str),
+                   //   HAL_MAX_DELAY);
+					  200);
 }
 
-
-void UART_Print(const char *s)
-{
-    while (*s)
-    {
-        UART_SendChar(*s++);
-    }
-}
 
 
 

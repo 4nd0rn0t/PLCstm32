@@ -9,7 +9,7 @@
 #define INC_PLC_APP_H_
 
 
-#include <config.h>
+#include "plc_config.h"
 #include "main.h"
 
 

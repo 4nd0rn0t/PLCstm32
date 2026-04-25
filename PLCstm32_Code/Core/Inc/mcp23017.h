@@ -32,7 +32,4 @@ int MCP23017_WritePortA(uint8_t value);
 int MCP23017_ReadPortB(uint8_t *value);
 uint8_t  MCP23017_Check(void);
 
-
-
-
 #endif /* INC_MCP23017_H_ */

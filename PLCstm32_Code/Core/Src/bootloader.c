@@ -68,19 +68,14 @@ void system_start(void)
 void bootloader_run(void)
 {
     // Encender LED
-   // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
 
-	GPIOB->BSRR = (1 << (6 + 16)); // RESET (poner a 0)
-
-   // uint32_t start = HAL_GetTick();
-	 uint32_t start = 0;    //para probar pero ahy que ver  para el tiempo con bare
-
+    uint32_t start = HAL_GetTick();
 
     while (1)
     {
         // si pasan 10 segundos
-       //  if ((HAL_GetTick() - start) >= 10000)
-    	 if ((5000- start) >= 10000)  // prueba para quitar
+         if ((HAL_GetTick() - start) >= 10000)
         {
 
 
