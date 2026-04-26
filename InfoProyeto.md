@@ -27,7 +27,7 @@ Se está intentando actualizar a nivel **bare-metal**, con el objetivo de:
 Actualmente, la implementación bare-metal:
 
 - ⚠️ No está funcionando correctamente
-- 📌 En HAL el consumo aproximado es de ~3 KB de Flash
+- 📌 En HAL el consumo aproximado es de ~20 KB de Flash
 - 🔧 Se encuentra en fase experimental y de depuración
 
 ---
