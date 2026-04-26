@@ -19,7 +19,7 @@ Este proyecto ha sido liberado públicamente, pero **NO está finalizado** y pue
 
 ## 🔬 Comunicación e implementación
 
-Se está intentando utilizar el bus **I2C a nivel bare-metal**, con el objetivo de:
+Se está intentando actualizar a nivel **bare-metal**, con el objetivo de:
 
 - Reducir el uso de memoria Flash
 - Evitar el consumo de la librería HAL
@@ -42,4 +42,4 @@ No se recomienda su uso en entornos críticos o de producción sin una revisión
 
 ## 📅 Última actualización
 
-23/04/2026
+2/04/2026
