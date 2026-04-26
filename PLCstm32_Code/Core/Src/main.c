@@ -74,7 +74,7 @@ void SystemClock_Config(void);
 void GPIO_Init(void);
 
 void UART1_Init(void);
-void UART1_EnableIRQ(void);
+//void UART1_EnableIRQ(void);
 
 void I2C1_Init(void);
 
@@ -94,7 +94,7 @@ void I2C1_Init(void);
 			ESTADO GLOBAL
 ========================================================= */
 
-void execute_block(Block16 *b, uint8_t i);
+//void execute_block(Block16 *b, uint8_t i);
 
 
 /* USER CODE END 0 */
@@ -125,20 +125,28 @@ int main(void)
 
  SystemClock_Config();
 
+
+
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
 
+ SystemCoreClockUpdate();					// Calcula la frecuencia real del CPU
+ SysTick_Config(SystemCoreClock / 1000); 	// Configura SysTick para interrupción cada 1 ms
+
  GPIO_Init();
  UART1_Init();
 
-UART1_EnableIRQ();
+I2C1_Init();
 
 
+ __enable_irq();							// Activa interrupciones globales (NVIC “unlock”)
 
- //void UART_SendChar(char c);
+
+//UART1_EnableIRQ();
+
 
 
 
@@ -154,7 +162,6 @@ UART1_EnableIRQ();
 
 
 /*
-
   while (1)
   {
       while (!(USART1->ISR & USART_ISR_TXE_TXFNF));
@@ -167,18 +174,14 @@ UART1_EnableIRQ();
 
 
 
+
+
+
+
   /* USER CODE BEGIN 2 */
 
-  I2C1_Init();
-
-//  UART1_EnableIRQ();
 
   system_start();     // decide BOOT o PLC (bloqueante)
-
-
- // SystemCoreClockUpdate();
-//  SysTick_Config(SystemCoreClock / 1000);
- // __enable_irq();
 
   /* USER CODE END 2 */
 
@@ -205,7 +208,9 @@ void plc_run(void)
     {
 
 
-    	if (system_flags & MCP23017_OK_FLAG)
+    	//if (system_flags & MCP23017_OK_FLAG)
+    		if (1)
+
 
 
     		     {

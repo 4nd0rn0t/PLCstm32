@@ -164,7 +164,28 @@ void USART1_IRQHandler(void)
 
   /* USER CODE BEGIN USART1_IRQn 1 */
 
-	char c = (char)USART1->RDR;  // LEER BORRA FLAG
+	 // comprobar si hay dato recibido
+	/* RX */
+
+	//	volatile uint32_t debug = USART1->ISR;
+
+	    if (USART1->ISR & USART_ISR_RXNE_RXFNE)
+	    {
+	        uint8_t c = (uint8_t)USART1->RDR;
+
+	        while (!(USART1->ISR & USART_ISR_TXE_TXFNF));
+	        USART1->TDR = c;
+	    }
+
+	    /* LIMPIAR ERRORES (CRÍTICO) */
+	    uint32_t isr = USART1->ISR;
+
+	    if (isr & (USART_ISR_ORE | USART_ISR_FE | USART_ISR_NE))
+	    {
+	        USART1->ICR = USART_ICR_ORECF |
+	                      USART_ICR_FECF |
+	                      USART_ICR_NECF;
+	    }
 
 
   /* USER CODE END USART1_IRQn 1 */

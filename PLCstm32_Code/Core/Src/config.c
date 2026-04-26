@@ -23,6 +23,8 @@ volatile uint64_t M = 0;
 volatile SystemMode_t mode = MODE_STOP;
 
 
+uint32_t GetPCLK2Freq(void);
+
 
 void SystemClock_Config(void)
 {
@@ -53,32 +55,24 @@ void SystemClock_Config(void)
 
 void GPIO_Init(void)
 {
-    // 1. Enable clocks
-    RCC->IOPENR |= RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN | RCC_IOPENR_GPIOFEN;
+
+    RCC->IOPENR |= RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN | RCC_IOPENR_GPIOFEN;	// Enable clocks
 
     // ========================
     // LED PB6
     // ========================
 
-    GPIOB->BSRR = (1UL << LED_PIN_NUM);  			// apagar LED (poner HIGH porque es active-low)
-
-    GPIOB->MODER &= ~(3UL << (LED_PIN_NUM  * 2U));
-    GPIOB->MODER |=  (1UL << (LED_PIN_NUM  * 2U));  // configurar como salida
-
-    GPIOB->OTYPER &= ~(1UL << LED_PIN_NUM );		// push-pull
-    GPIOB->PUPDR  &= ~(3UL << (LED_PIN_NUM  * 2U)); // no pull
-
-    GPIOB->OSPEEDR &= ~(3UL << (LED_PIN_NUM * 2U)); // limpiar primero
-    GPIOB->OSPEEDR |=  (3UL << (LED_PIN_NUM * 2U)); // high speed
+    GPIOB->BSRR = GPIO_BSRR_BS6;   													// apagar LED (poner HIGH porque es active-low)
+    GPIOB->MODER = (GPIOB->MODER & ~GPIO_MODER_MODE6_Msk) | GPIO_MODER_MODE6_0;  	// configurar como salida
+    GPIOB->OTYPER &= ~GPIO_OTYPER_OT6_Msk;											// push-pull
+    GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD6_Msk;											// no pull
+    GPIOB->OSPEEDR = (GPIOB->OSPEEDR & ~GPIO_OSPEEDR_OSPEED6_Msk) | GPIO_OSPEEDR_OSPEED6_1;	// high speed
 
     // ========================
     // Pulsador PA8
     // ========================
-    GPIOA->MODER &= ~(3UL << (PULSADOR_PIN_NUM * 2U));
-    GPIOA->PUPDR &= ~(3UL << (PULSADOR_PIN_NUM * 2U));
-    GPIOA->PUPDR |=  (1UL << (PULSADOR_PIN_NUM * 2U));
-
-
+    GPIOA->MODER &= ~GPIO_MODER_MODE8_Msk;
+    GPIOA->PUPDR = (GPIOA->PUPDR & ~GPIO_PUPDR_PUPD8_Msk) | GPIO_PUPDR_PUPD8_0;
 
 }
 
@@ -138,10 +132,27 @@ void UART1_Init(void)
     RCC->APBRSTR2 &= ~RCC_APBRSTR2_USART1RST;
 
     /* CLOCK SOURCE = PCLK */
+   // RCC->CCIPR &= ~(3U << RCC_CCIPR_USART1SEL_Pos);
+  //  RCC->CCIPR |=  (0U << RCC_CCIPR_USART1SEL_Pos);
+
     RCC->CCIPR &= ~(3U << RCC_CCIPR_USART1SEL_Pos);
-    RCC->CCIPR |=  (0U << RCC_CCIPR_USART1SEL_Pos);
 
     /* ========= GPIO ========= */
+
+    MODIFY_REG(GPIOA->MODER,
+               GPIO_MODER_MODE9_Msk | GPIO_MODER_MODE10_Msk,
+               GPIO_MODER_MODE9_1 | GPIO_MODER_MODE10_1);
+
+    MODIFY_REG(GPIOA->AFR[1],
+               GPIO_AFRH_AFSEL9_Msk | GPIO_AFRH_AFSEL10_Msk,
+               (1U << GPIO_AFRH_AFSEL9_Pos) | (1U << GPIO_AFRH_AFSEL10_Pos));
+
+    MODIFY_REG(GPIOA->PUPDR,
+               GPIO_PUPDR_PUPD10_Msk,
+               GPIO_PUPDR_PUPD10_0);
+
+
+    /*
     // PA9 TX / PA10 RX
     GPIOA->MODER &= ~((3U << (9*2)) | (3U << (10*2)));
     GPIOA->MODER |=  ((2U << (9*2)) | (2U << (10*2))); // AF mode
@@ -151,18 +162,35 @@ void UART1_Init(void)
 
     GPIOA->PUPDR &= ~(3U << (10*2));
     GPIOA->PUPDR |=  (1U << (10*2)); // RX pull-up
+*/
 
-
-    /* ========= UART ========= */
-
+    /* ========= UART RESET STATE ========= */
     USART1->CR1 = 0;
+    USART1->CR2 = 0;
+    USART1->CR3 = 0;
 
+    /* DESACTIVAR FIFO */
+    USART1->CR1 &= ~USART_CR1_FIFOEN;
+
+    // LIMPIAR FLAGS (
+    USART1->ICR = 0xFFFFFFFF;
+
+    /* BAUD */
     USART1->BRR = SystemCoreClock / 115200;
 
-    USART1->CR1 |= USART_CR1_RE; // RX enable
-    USART1->CR1 |= USART_CR1_TE; // TX enable
+
+    // Enable RX + TX
+    USART1->CR1 |= USART_CR1_RE | USART_CR1_TE;
+
+
+    // Enable interrupt RX
+    USART1->CR1 |= USART_CR1_RXNEIE_RXFNEIE;
+
 
     USART1->CR1 |= USART_CR1_UE; // USART enable
+
+    // NVIC
+    NVIC_EnableIRQ(USART1_IRQn);
 
 }
 
@@ -191,6 +219,9 @@ void delay_ms(uint32_t ms)
     uint32_t start = millis();
     while ((millis() - start) < ms);
 }
+
+
+
 
 
 

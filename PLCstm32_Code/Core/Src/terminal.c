@@ -28,6 +28,8 @@ void UART_SendChar(char c)
 
 void UART_Print(const char *s)
 {
+
+
     while (*s)
     {
         UART_SendChar(*s++);
