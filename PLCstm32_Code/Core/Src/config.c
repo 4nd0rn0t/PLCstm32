@@ -166,6 +166,12 @@ void GPIO_Init(void)
 
 void I2C1_Init(void)
  {
+
+	RCC->APBENR2 |= RCC_APBENR2_USART1EN;
+
+	RCC->CCIPR = (RCC->CCIPR & ~RCC_CCIPR_USART1SEL)
+	           | RCC_CCIPR_USART1SEL_0;   // PCLK
+
         // 1. Clock GPIO + I2C
 	RCC->IOPENR |= RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN;
     RCC->APBENR1 |= RCC_APBENR1_I2C1EN;
@@ -199,12 +205,30 @@ void I2C1_Init(void)
 void UART1_Init(void)
 {
 
-	RCC->IOPENR |= RCC_IOPENR_GPIOAEN;
-	RCC->APBENR2 |= RCC_APBENR2_USART1EN;
+		// 1. Clock GPIO + USART
+	    RCC->IOPENR |= RCC_IOPENR_GPIOAEN;
+	    RCC->APBENR2 |= RCC_APBENR2_USART1EN;
 
-	USART1->BRR = SystemCoreClock / 115200;
+	    // 2. Seleccionar clock (MUY IMPORTANTE en varias STM32)
+	    RCC->CCIPR &= ~RCC_CCIPR_USART1SEL;
+	    RCC->CCIPR |= RCC_CCIPR_USART1SEL_0; // PCLK
 
-	USART1->CR1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
+	    // 3. Reset USART
+	    RCC->APBRSTR2 |= RCC_APBRSTR2_USART1RST;
+	    RCC->APBRSTR2 &= ~RCC_APBRSTR2_USART1RST;
+
+	    // 4. Desactivar antes de configurar
+	    USART1->CR1 = 0;
+
+	    // 5. Baudrate
+	    USART1->BRR = SystemCoreClock / 115200;
+
+	    // 6. Config básica
+	    USART1->CR1 |= USART_CR1_TE | USART_CR1_RE;
+
+	    // 7. Habilitar UART AL FINAL
+	    USART1->CR1 |= USART_CR1_UE;
+
 }
 
 
