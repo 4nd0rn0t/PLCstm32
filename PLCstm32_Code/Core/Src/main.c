@@ -132,22 +132,25 @@ int main(void)
   /* Initialize all configured peripherals */
 
  GPIO_Init();
-// UART1_Init();
+ UART1_Init();
+
+UART1_EnableIRQ();
+
+
+
+ //void UART_SendChar(char c);
 
 
 
 
- USART1->CR1 = 0;
- USART1->BRR = SystemCoreClock / 115200;
- USART1->CR1 |= USART_CR1_TE;
- USART1->CR1 |= USART_CR1_UE;
-
+/*
  while (1)
- {
-     USART1->TDR = 'A';
-     while (!(USART1->ISR & USART_ISR_TC));
- }
+   {
+       UART_SendChar('A');
 
+       for (volatile int i = 0; i < 200000; i++);
+   }
+*/
 
 
 /*

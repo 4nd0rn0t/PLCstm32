@@ -8,6 +8,7 @@
 #include <config.h>
 #include "main.h"
 
+#include "stm32c0xx.h"
 
 /* =========================================================
 			Definición
@@ -25,28 +26,23 @@ volatile SystemMode_t mode = MODE_STOP;
 
 void SystemClock_Config(void)
 {
-    // 1. Enable HSI
-    RCC->CR |= RCC_CR_HSION;
-    while (!(RCC->CR & RCC_CR_HSIRDY));
 
-    // 2. FORCE HSI DIV = 1 (48 MHz)
-    RCC->CR &= ~RCC_CR_HSIDIV;   // limpia todo el campo
 
-    // IMPORTANTE: algunos C0 no usan bit directo,
-    // así que forzamos el valor "DIV1"
-    RCC->CR |= (0x0 << RCC_CR_HSIDIV_Pos);
+	 // Encender HSI
+	    RCC->CR |= RCC_CR_HSION;
+	    while (!(RCC->CR & RCC_CR_HSIRDY));
 
-    // 3. Select HSI as SYSCLK
-    RCC->CFGR &= ~RCC_CFGR_SW;
+	    // Seleccionar HSI como SYSCLK
+	    RCC->CFGR &= ~RCC_CFGR_SW;
 
-    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI);
+	    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI);
 
-    // 4. Prescalers = 1
-    RCC->CFGR &= ~RCC_CFGR_HPRE;
-    RCC->CFGR &= ~RCC_CFGR_PPRE;
+	    SystemCoreClockUpdate();
+	}
 
-    SystemCoreClockUpdate();
-}
+
+
+
 
 
 
@@ -83,81 +79,6 @@ void GPIO_Init(void)
     GPIOA->PUPDR |=  (1UL << (PULSADOR_PIN_NUM * 2U));
 
 
-    // ========================
-	// USART1 (PA9 TX, PA10 RX)
-	// ========================
-
-	    // PA9 -> TX
-    GPIOA->MODER &= ~(3UL << (9 * 2));
-	GPIOA->MODER |=  (2UL << (9 * 2));   // AF mode
-
-	GPIOA->OTYPER &= ~(1UL << 9);        // push-pull
-	GPIOA->PUPDR  &= ~(3UL << (9 * 2));  // no pull
-	GPIOA->OSPEEDR |= (3UL << (9 * 2));  // high speed
-
-	GPIOA->AFR[1] &= ~(0xFUL << ((9 - 8) * 4));  // limpiar
-	GPIOA->AFR[1] |=  (1UL << ((9 - 8) * 4));    // AF1 = USART1
-
-	    // PA10 -> RX
-	GPIOA->MODER &= ~(3UL << (10 * 2));
-	GPIOA->MODER |=  (2UL << (10 * 2));  // AF mode
-
-	GPIOA->PUPDR  &= ~(3UL << (10 * 2));
-	GPIOA->PUPDR  |=  (1UL << (10 * 2)); // pull-up recomendable
-
-	GPIOA->AFR[1] &= ~(0xFUL << ((10 - 8) * 4));
-	GPIOA->AFR[1] |=  (1UL << ((10 - 8) * 4));   // AF1
-
-
-	// ========================
-	// PB7 -> I2C1_SCL
-	// ========================
-
-	       // MODER = Alternate Function (10)
-	GPIOB->MODER &= ~(3UL << (7U * 2U));
-	GPIOB->MODER |=  (2UL << (7U * 2U));
-
-	       // OTYPER = Open Drain (1)
-	GPIOB->OTYPER &= ~(1UL << 7U);
-	GPIOB->OTYPER |=  (1UL << 7U);
-
-	       // PUPDR = Pull-Up (01)
-	GPIOB->PUPDR &= ~(3UL << (7U * 2U));
-	GPIOB->PUPDR |=  (1UL << (7U * 2U));
-
-	       // SPEED (opcional pero recomendable)
-	GPIOB->OSPEEDR &= ~(3UL << (7U * 2U));
-	GPIOB->OSPEEDR |=  (2UL << (7U * 2U)); // medium/high
-
-	       // AFR = AF6 (I2C1)
-	GPIOB->AFR[0] &= ~(0xFUL << (7U * 4U));
-	GPIOB->AFR[0] |=  (6UL << (7U * 4U));
-
-
-	// ========================
-	// PC14 -> I2C1_SDA
-	// ========================
-
-	       // MODER = Alternate Function
-	GPIOC->MODER &= ~(3UL << (14U * 2U));
-	GPIOC->MODER |=  (2UL << (14U * 2U));
-
-	       // OTYPER = Open Drain
-	GPIOC->OTYPER &= ~(1UL << 14U);
-	GPIOC->OTYPER |=  (1UL << 14U);
-
-	       // PUPDR = Pull-Up
-	GPIOC->PUPDR &= ~(3UL << (14U * 2U));
-	GPIOC->PUPDR |=  (1UL << (14U * 2U));
-
-	       // SPEED
-	GPIOC->OSPEEDR &= ~(3UL << (14U * 2U));
-	GPIOC->OSPEEDR |=  (2UL << (14U * 2U));
-
-	       // AFR = AF6 (I2C1)
-	GPIOC->AFR[1] &= ~(0xFUL << ((14U - 8U) * 4U));
-	GPIOC->AFR[1] |=  (6UL << ((14U - 8U) * 4U));
-
 
 }
 
@@ -167,36 +88,40 @@ void GPIO_Init(void)
 void I2C1_Init(void)
  {
 
-	RCC->APBENR2 |= RCC_APBENR2_USART1EN;
+	 /* CLOCKS */
+	    RCC->IOPENR |= RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN;
+	    RCC->APBENR1 |= RCC_APBENR1_I2C1EN;
 
-	RCC->CCIPR = (RCC->CCIPR & ~RCC_CCIPR_USART1SEL)
-	           | RCC_CCIPR_USART1SEL_0;   // PCLK
+	    /* RESET */
+	    RCC->APBRSTR1 |= RCC_APBRSTR1_I2C1RST;
+	    RCC->APBRSTR1 &= ~RCC_APBRSTR1_I2C1RST;
 
-        // 1. Clock GPIO + I2C
-	RCC->IOPENR |= RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN;
-    RCC->APBENR1 |= RCC_APBENR1_I2C1EN;
+	    /* GPIO PB7 SCL / PC14 SDA */
+	    GPIOB->MODER |= (2U << (7*2));
+	    GPIOB->OTYPER |= (1U << 7);
+	    GPIOB->PUPDR |= (1U << (7*2));
+	    GPIOB->AFR[0] |= (6U << (7*4));
 
-        // 2. Reset I2C
-    RCC->APBRSTR1 |= RCC_APBRSTR1_I2C1RST;
-    RCC->APBRSTR1 &= ~RCC_APBRSTR1_I2C1RST;
+	    GPIOC->MODER |= (2U << (14*2));
+	    GPIOC->OTYPER |= (1U << 14);
+	    GPIOC->PUPDR |= (1U << (14*2));
+	    GPIOC->AFR[1] |= (6U << ((14-8)*4));
 
-        // 3. Desactivar I2C
-    I2C1->CR1 &= ~I2C_CR1_PE;
+	    /* Disable peripheral */
+	    I2C1->CR1 &= ~I2C_CR1_PE;
 
-        // 4. TIMING (EL TUYO DE HAL)
-    	//     I2C1->TIMINGR = 0x0090194B;      //400 Khz
+	    /* TIMING (100kHz típico correcto C0 @48MHz) */
+	    I2C1->TIMINGR = 0x00303D5B;
 
-    I2C1->TIMINGR = 0x00303D5B;		//100 Khz
+	    /* FILTERS */
+	    I2C1->CR1 &= ~I2C_CR1_ANFOFF;
+	    I2C1->CR1 &= ~(0xF << I2C_CR1_DNF_Pos);
 
-        // 5. Filtros (igual que HAL)
-    I2C1->CR1 &= ~I2C_CR1_ANFOFF;    		 // analog filter ON
-    I2C1->CR1 &= ~(0xF << I2C_CR1_DNF_Pos);  // digital filter = 0
+	    I2C1->ICR = 0xFFFFFFFF;
 
-        // 6. Limpiar flags
-    I2C1->ICR = 0xFFFFFFFF;
+	    /* ENABLE */
+	    I2C1->CR1 |= I2C_CR1_PE;
 
-        // 7. Activar I2C
-    I2C1->CR1 |= I2C_CR1_PE;
 }
 
 
@@ -204,42 +129,52 @@ void I2C1_Init(void)
 
 void UART1_Init(void)
 {
+    /* ========= CLOCKS ========= */
+    RCC->IOPENR  |= RCC_IOPENR_GPIOAEN;		// GPIOA
+    RCC->APBENR2 |= RCC_APBENR2_USART1EN;	// USART1
 
-		// 1. Clock GPIO + USART
-	    RCC->IOPENR |= RCC_IOPENR_GPIOAEN;
-	    RCC->APBENR2 |= RCC_APBENR2_USART1EN;
+    /* RESET USART */
+    RCC->APBRSTR2 |= RCC_APBRSTR2_USART1RST;
+    RCC->APBRSTR2 &= ~RCC_APBRSTR2_USART1RST;
 
-	    // 2. Seleccionar clock (MUY IMPORTANTE en varias STM32)
-	    RCC->CCIPR &= ~RCC_CCIPR_USART1SEL;
-	    RCC->CCIPR |= RCC_CCIPR_USART1SEL_0; // PCLK
+    /* CLOCK SOURCE = PCLK */
+    RCC->CCIPR &= ~(3U << RCC_CCIPR_USART1SEL_Pos);
+    RCC->CCIPR |=  (0U << RCC_CCIPR_USART1SEL_Pos);
 
-	    // 3. Reset USART
-	    RCC->APBRSTR2 |= RCC_APBRSTR2_USART1RST;
-	    RCC->APBRSTR2 &= ~RCC_APBRSTR2_USART1RST;
+    /* ========= GPIO ========= */
+    // PA9 TX / PA10 RX
+    GPIOA->MODER &= ~((3U << (9*2)) | (3U << (10*2)));
+    GPIOA->MODER |=  ((2U << (9*2)) | (2U << (10*2))); // AF mode
 
-	    // 4. Desactivar antes de configurar
-	    USART1->CR1 = 0;
+    GPIOA->AFR[1] &= ~((0xFU << 4) | (0xFU << 8));
+    GPIOA->AFR[1] |=  ((1U << 4) | (1U << 8)); // AF1 USART1
 
-	    // 5. Baudrate
-	    USART1->BRR = SystemCoreClock / 115200;
+    GPIOA->PUPDR &= ~(3U << (10*2));
+    GPIOA->PUPDR |=  (1U << (10*2)); // RX pull-up
 
-	    // 6. Config básica
-	    USART1->CR1 |= USART_CR1_TE | USART_CR1_RE;
 
-	    // 7. Habilitar UART AL FINAL
-	    USART1->CR1 |= USART_CR1_UE;
+    /* ========= UART ========= */
+
+    USART1->CR1 = 0;
+
+    USART1->BRR = SystemCoreClock / 115200;
+
+    USART1->CR1 |= USART_CR1_RE; // RX enable
+    USART1->CR1 |= USART_CR1_TE; // TX enable
+
+    USART1->CR1 |= USART_CR1_UE; // USART enable
 
 }
+
+
 
 
 void UART1_EnableIRQ(void)
 {
-  // habilitar interrupción RX
-	USART1->CR1 |= USART_CR1_RXNEIE_RXFNEIE;  // puesto por mi
-
-  // habilitar NVIC
-	NVIC_EnableIRQ(USART1_IRQn);		// puesto por mi
+ 	USART1->CR1 |= USART_CR1_RXNEIE_RXFNEIE;  	 // habilitar interrupción RX
+	NVIC_EnableIRQ(USART1_IRQn);		 		 // habilitar NVIC
 }
+
 
 
 
