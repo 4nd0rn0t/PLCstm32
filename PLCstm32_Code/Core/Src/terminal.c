@@ -16,7 +16,7 @@
 
 static uint8_t ultima_I = 0xFF;
 static uint8_t ultima_Q  = 0xFF;
-static SystemMode_t ultimo_mode = MODE_UNKNOWN;
+static SystemMode_t ultimo_mode = MODE_STOP;
 
 
 void UART_SendChar(char c)

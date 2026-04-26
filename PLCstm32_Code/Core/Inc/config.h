@@ -88,8 +88,7 @@ typedef enum {
     MODE_STOP = 0,
 	MODE_RUN,
     MODE_ERROR,
-    MODE_CARGA,
-    MODE_UNKNOWN
+    MODE_CARGA
  } SystemMode_t;
 
 /* =========================================================
