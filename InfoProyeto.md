@@ -42,4 +42,4 @@ No se recomienda su uso en entornos críticos o de producción sin una revisión
 
 ## 📅 Última actualización
 
-2/04/2026
+26/04/2026
