@@ -7,7 +7,7 @@
 
 #include "bootloader.h"
 
-#include "stm32c0xx.h"				// Codigo tipo CMSIS (nivel bajo)
+#include "stm32c0xx.h"
 
 #include "config.h"
 
@@ -43,8 +43,6 @@ static void validate_boot_ctrl(void)
 }
 
 
-
-
 void system_start(void)
 {
     validate_boot_ctrl();
@@ -67,12 +65,10 @@ void system_start(void)
 }
 
 
-
 void bootloader_run(void)
 {
-    // Encender LED
-    //HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
-	GPIOB->BSRR = (1U << (6 + 16)); // reset   encender LED
+
+	GPIOB->BSRR = (1U << (6 + 16)); // Reset encender LED
 
     uint32_t start = GetTick();
 
@@ -81,8 +77,6 @@ void bootloader_run(void)
         // si pasan 10 segundos
          if ((GetTick() - start) >= 10000)
         {
-
-
 
 
         	  // Poner en modo PLC, cuando termine la carga y hacer reset

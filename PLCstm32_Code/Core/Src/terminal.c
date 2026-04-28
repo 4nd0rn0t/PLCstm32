@@ -5,7 +5,6 @@
  *      Author: Yo
  */
 
-
 #include "main.h"
 #include "terminal.h"
 
@@ -26,7 +25,6 @@ void UART_Print(const char *str)
 }
 
 
-
 void Terminal_Imprimir(uint8_t I, uint8_t Q, SystemMode_t mode)
 
 {
@@ -45,7 +43,6 @@ void Terminal_Imprimir(uint8_t I, uint8_t Q, SystemMode_t mode)
 	    }
 }
 
-
 const char* MCP23017_ModeToString(SystemMode_t mode)
 {
 	switch (mode)
@@ -57,7 +54,6 @@ const char* MCP23017_ModeToString(SystemMode_t mode)
         	default:          return "UNKNOWN";
     	}
 }
-
 
 void MCP23017_PrintStatus(uint8_t inputs, uint8_t outputs, SystemMode_t mode)
 {

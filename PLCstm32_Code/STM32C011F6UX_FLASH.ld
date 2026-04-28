@@ -41,15 +41,24 @@ _estack = ORIGIN(RAM) + LENGTH(RAM); /* end of "RAM" Ram type memory */
 _Min_Heap_Size = 0x200; /* required amount of heap */
 _Min_Stack_Size = 0x400; /* required amount of stack */
 
+
+
+
+
 /* Memories definition */
 MEMORY
 {
   RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 6K
  /*FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 32K */
-  /*FLASH    (rx)    : ORIGIN = 0x08000000,   LENGTH = 26K   /* añadido por mi */
-  FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 0x6800   /* hasta 0x08006800 */
-  USER_FLASH (rx)  : ORIGIN = 0x08006800, LENGTH = 0x1800  /* añadido por mi */
+  /*FLASH    (rx)    : ORIGIN = 0x08000000,   LENGTH = 26K   /* Añadido */
+  FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 0x6800   /* Hasta 0x08006800 */
+  USER_FLASH (rx)  : ORIGIN = 0x08006800, LENGTH = 0x1800  /* Añadido */
 }
+
+
+
+
+
 
 /* Sections */
 SECTIONS
@@ -169,7 +178,10 @@ SECTIONS
   } >RAM
 
 
-/* añadido por mi */
+
+
+
+/* Añadido */
 /* Uninitialized data section into "RAM" */
   . = ALIGN(4);
 
@@ -179,6 +191,9 @@ SECTIONS
     *(.noinit)
     . = ALIGN(4);
   } >RAM
+
+
+
 
 
 
@@ -197,13 +212,17 @@ SECTIONS
 
 
 
-/* añadido por mi */
+
+
+/* Añadido */
  .user_flash :
  {
     . = ALIGN(8);
     KEEP(*(.user_flash))
     . = ALIGN(8);
  } >USER_FLASH
+
+
 
 
 

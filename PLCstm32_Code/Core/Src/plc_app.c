@@ -7,7 +7,6 @@
 
 #include <string.h>
 
-
 #include "plc_app.h"
 #include "plc_nucleo.h"
 #include "plc_flash.h"
@@ -94,7 +93,6 @@ void plc_scan(void)
     }
 }
 
-
 /* =========================================================
 			Para detectar pulsacion pulsador
 ========================================================= */
@@ -127,7 +125,7 @@ void actualizar_modo(void)
 }
 
 /* =========================================================
-			Parpadear el led segun modo funcionamiento
+			Parpadear el LED segun modo funcionamiento
 ========================================================= */
 
 void parpadeo_led(void)
@@ -150,7 +148,7 @@ void parpadeo_led(void)
     {
         last = now;
 
-        GPIOB->ODR ^= (1U << 6); // toggle directo del bit LED
+        GPIOB->ODR ^= (1U << 6); // Toggle directo del bit del LED
     }
 }
 
@@ -184,7 +182,6 @@ uint32_t crc32_calc(uint8_t *data, uint32_t len)
 
     return ~crc;
 }
-
 
 uint32_t GetTick(void)
 {

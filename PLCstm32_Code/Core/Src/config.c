@@ -5,7 +5,6 @@
  *      Author: Yo
  */
 
-
 #include "config.h"
 
 #include "main.h"
@@ -35,7 +34,6 @@ void SystemClock_Config(void)
 	while (!(RCC->CR & RCC_CR_HSIRDY))		// HSI ON + esperar listo
 	{
 	}
-
 
 	RCC->ICSCR = (RCC->ICSCR & ~RCC_ICSCR_HSITRIM_Msk) | (64 << RCC_ICSCR_HSITRIM_Pos);	// Calibración HSI 64 por ejemplo
 
@@ -143,8 +141,7 @@ void USART1_Init(void)
     while (!(USART1->ISR & USART_ISR_REACK)) {}
 
     USART1->CR1 |= USART_CR1_RXNEIE_RXFNEIE;
-    NVIC_EnableIRQ(USART1_IRQn);				// habilitar RX interrupt
-
+    NVIC_EnableIRQ(USART1_IRQn);				// Habilitar RX interrupt
 
 }
 
@@ -173,7 +170,8 @@ void I2C1_Init(void)
     I2C1->CR1 &= ~I2C_CR1_PE;
 
     /* Timing (CRÍTICO) */
-    I2C1->TIMINGR = 0x0090194B;
+   // I2C1->TIMINGR = 0x0090194B;		// 100 Khz
+    I2C1->TIMINGR = 0x00300F38;		// 400 Khz
 
     /* Enable I2C */
     I2C1->CR1 |= I2C_CR1_PE;
