@@ -17,22 +17,16 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <config.h>
-//#include "main.h"
+#include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
-
-//#include <string.h>
 
 #include "bootloader.h"
 
 #include "mcp23017.h"
 #include "terminal.h"
 
-#include "plc_nucleo.h"
-//#include "plc_flash.h"
 #include "plc_app.h"
 
 
@@ -56,27 +50,15 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-//UART_HandleTypeDef huart1;
-
 /* USER CODE BEGIN PV */
-
-
-
 
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
 
 /* USER CODE BEGIN PFP */
 
-void GPIO_Init(void);
-
-void UART1_Init(void);
-//void UART1_EnableIRQ(void);
-
-void I2C1_Init(void);
 
 
 /* USER CODE END PFP */
@@ -84,18 +66,13 @@ void I2C1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+void SystemClock_Config(void);
+void GPIO_Init(void);
+void USART1_Init(void);
+void I2C1_Init(void);
 
-
-
-
-
-
-/* =========================================================
-			ESTADO GLOBAL
-========================================================= */
-
-//void execute_block(Block16 *b, uint8_t i);
-
+//volatile uint32_t cont_serial = 0;
+//void  UART_Print_demo(void);
 
 /* USER CODE END 0 */
 
@@ -108,79 +85,39 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
+	SystemCoreClockUpdate();
+	SysTick_Config(SystemCoreClock / 1000);
 
+	/* Enable SYSCFG clock */
+	RCC->APBENR2 |= RCC_APBENR2_SYSCFGEN;
+
+	/* Enable PWR clock */
+	RCC->APBENR1 |= RCC_APBENR1_PWREN;
+
+	NVIC_SetPriority(SysTick_IRQn, 3);
+
+	SYSCFG->CFGR1 |= SYSCFG_CFGR1_PA11_RMP;
+	SYSCFG->CFGR1 |= SYSCFG_CFGR1_PA12_RMP;
 
   /* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
-
   /* USER CODE BEGIN Init */
+
 
   /* USER CODE END Init */
 
   /* Configure the system clock */
-
- SystemClock_Config();
-
-
-
+  SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
-
- SystemCoreClockUpdate();					// Calcula la frecuencia real del CPU
- SysTick_Config(SystemCoreClock / 1000); 	// Configura SysTick para interrupción cada 1 ms
-
- GPIO_Init();
- UART1_Init();
-
-I2C1_Init();
-
-
- __enable_irq();							// Activa interrupciones globales (NVIC “unlock”)
-
-
-//UART1_EnableIRQ();
-
-
-
-
-
-/*
- while (1)
-   {
-       UART_SendChar('A');
-
-       for (volatile int i = 0; i < 200000; i++);
-   }
-*/
-
-
-/*
-  while (1)
-  {
-      while (!(USART1->ISR & USART_ISR_TXE_TXFNF));
-      USART1->TDR = 'A';
-      for (volatile int i = 0; i < 200000; i++);
-  }
-
-*/
-
-
-
-
-
-
-
-
   /* USER CODE BEGIN 2 */
 
+  GPIO_Init();
+  USART1_Init();
+  I2C1_Init();
 
   system_start();     // decide BOOT o PLC (bloqueante)
 
@@ -208,11 +145,7 @@ void plc_run(void)
     while (1)
     {
 
-
-    	//if (system_flags & MCP23017_OK_FLAG)
-    		if (1)
-
-
+    	if (system_flags & MCP23017_OK_FLAG)
 
     		     {
     		         // El chip responde
@@ -226,29 +159,26 @@ void plc_run(void)
     			         case MODE_STOP:
 
     			        	 plc_init();
-    			        	// I = MCP23017_ReadPortB();   // Actualizar lectura de entradas
 
     			        	 uint8_t value = 0;
-    			        	 MCP23017_ReadPortB(&value);
-    			        	 I = value;
+    			        	 MCP_ReadPortB(&value);
+    			        	 I = value;						// Actualizar lectura de entradas
 
 
     			        	 Q = 0;
-    			        	 MCP23017_WritePortA(Q);
+    			        	 MCP_WritePortA(Q);
 
     			             break;
 
     			         case MODE_RUN:
 
-    			        	// I = MCP23017_ReadPortB();   // Actualizar lectura de entradas
-
     			        	// uint8_t value = 0;
 
-    			        	 MCP23017_ReadPortB(&value);
+    			        	 MCP_ReadPortB(&value);			// Actualizar lectura de entradas
     			        	 I = value;
 
     			        	 plc_scan();
-    			        	 MCP23017_WritePortA(Q);
+    			        	 MCP_WritePortA(Q);
 
     			        	 break;
 
@@ -256,11 +186,7 @@ void plc_run(void)
 
     			        	 plc_init();
     			        	 Q = 0;
-    			        	 MCP23017_WritePortA(Q);
-
-    			        	 // aquí puedes permitir escritura Flash / carga de programa
-
-    			        	// NVIC_SystemReset();    // Hace reset
+    			        	 MCP_WritePortA(Q);
 
     			        	 break;
 
@@ -283,29 +209,14 @@ void plc_run(void)
 
     		     }
 
-
     		  Terminal_Imprimir(I, Q, mode);
+    		//  UART_Print_demo();
     }
-
-//}
-
-
 
 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-
-
-
-
-
-
-
-
-
-
 
 
   /* USER CODE END 3 */
@@ -316,6 +227,11 @@ void plc_run(void)
   * @retval None
   */
 
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
 
 /**
   * @brief USART1 Initialization Function
@@ -323,153 +239,15 @@ void plc_run(void)
   * @retval None
   */
 
-/*
-static void MX_USART1_UART_Init(void)
-{
-*/
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-	/*
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_DisableFifoMode(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  */
   /* USER CODE BEGIN USART1_Init 2 */
 
-
-
-
   /* USER CODE END USART1_Init 2 */
-
-
 
 /**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
   */
-
-/*
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  */
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
-
-  /* USER CODE END MX_GPIO_Init_1 */
-
-  /* GPIO Ports Clock Enable */
-
-/*
-  __HAL_RCC_GPIOF_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-
-*/
-  /*Configure GPIO pin Output Level */
-
-/*
-  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-*/
-  /*Configure GPIO pin : Button_Pin */
-/*
-  GPIO_InitStruct.Pin = Button_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(Button_GPIO_Port, &GPIO_InitStruct);
-*/
-
-  /*Configure GPIO pins : PA2 PA3 */
-/*
-  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF1_USART2;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-*/
-  /*Configure GPIO pins : PA4 PA5 PA6 PA7 */
-/*
-  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF0_SPI1;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-*/
-  /*Configure GPIO pin : Pulsador_Pin */
-/*
-  GPIO_InitStruct.Pin = Pulsador_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(Pulsador_GPIO_Port, &GPIO_InitStruct);
-*/
-  /*Configure GPIO pin : LED_Pin */
-/*
-  GPIO_InitStruct.Pin = LED_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
-*/
-  /*Configure GPIO pin : PB7 */
-/*
-  GPIO_InitStruct.Pin = GPIO_PIN_7;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF14_I2C1;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-*/
-
-  /*Configure GPIO pin : PC14 */
-/*
-  GPIO_InitStruct.Pin = GPIO_PIN_14;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF14_I2C1;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-*/
-
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
-
-  /* USER CODE END MX_GPIO_Init_2 */
-/*
-}
-*/
 
 /* USER CODE BEGIN 4 */
 
@@ -481,17 +259,15 @@ static void MX_GPIO_Init(void)
   */
 void Error_Handler(void)
 {
-    while (1)
-    {
-        GPIOB->ODR ^= (1 << 6); // toggle LED
-        for (volatile int i = 0; i < 100000; i++);
-    }
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
 }
-
-
-
-
-//#ifdef USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
@@ -499,11 +275,11 @@ void Error_Handler(void)
   * @param  line: assert_param error line source number
   * @retval None
   */
-//void assert_failed(uint8_t *file, uint32_t line)
-//{
+void assert_failed(uint8_t *file, uint32_t line)
+{
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
-//}
-//#endif /* USE_FULL_ASSERT */
+}
+#endif /* USE_FULL_ASSERT */

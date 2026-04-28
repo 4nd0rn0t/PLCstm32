@@ -5,13 +5,8 @@
  *      Author: Yo
  */
 
-#include <stdint.h>
 
-
-#include "plc_app.h"
 #include "plc_nucleo.h"
-#include "main.h"
-
 
 uint32_t state[MAX_BLOCKS];
 uint32_t state2[MAX_BLOCKS];
@@ -228,10 +223,10 @@ void execute_block(Block16 *b, uint8_t i)
 
 		if (state[i] == 0)
 			{
-				state[i] = millis();
+				state[i] = GetTick();
 
 			}
-				if ((millis() - state[i]) >= b->param_A * base)
+				if ((GetTick() - state[i]) >= b->param_A * base)
 					out = 1;
 				} else {
 					state[i] = 0;
@@ -259,10 +254,10 @@ void execute_block(Block16 *b, uint8_t i)
 
 				if (s1) {
 					out = 1;
-						state[i] = millis();
+						state[i] = GetTick();
 						} else {
 							//revisar posible mal
-							out = ((millis() - state[i]) < b->param_A * base);
+							out = ((GetTick() - state[i]) < b->param_A * base);
 						}
 					  	break;
 			}
@@ -285,11 +280,11 @@ void execute_block(Block16 *b, uint8_t i)
 			uint32_t base = get_time_base(b->cfg);
 
 				if (rising_edge(i, s1)) {
-					state[i] = millis();
+					state[i] = GetTick();
 					flags[i] |= FLAG_OUT;
 				}
 
-				if ((millis() - state[i]) >= b->param_A * base)
+				if ((GetTick() - state[i]) >= b->param_A * base)
 					flags[i] &= ~FLAG_OUT;
 
 				  	  out = (flags[i] & FLAG_OUT) != 0;
@@ -301,10 +296,10 @@ void execute_block(Block16 *b, uint8_t i)
 					Intermitente
 ========================================================= */
 
-	case OP_T_BLINK:
+	case OP_BLINK:
 	{
 	    uint32_t base = get_time_base(b->cfg);
-	    uint32_t now  = millis();
+	    uint32_t now  = GetTick();
 
 	    // Reset total si IN=0
 	    if (!s1)
@@ -363,10 +358,10 @@ void execute_block(Block16 *b, uint8_t i)
 				Rele tipo barrido
 ========================================================= */
 
-	case OP_T_SWEEP:
+	case OP_SWEEP:
 	{
 	    uint32_t base = get_time_base(b->cfg);
-	    uint32_t now  = millis();
+	    uint32_t now  = GetTick();
 
 	    // Si entrada = 0 → salida inmediata a 0 + reset
 	    if (!s1)
@@ -406,10 +401,10 @@ void execute_block(Block16 *b, uint8_t i)
 			Relé de barrido activado por flancos
 ========================================================= */
 
-	case OP_T_SWEEP_EDGE:
+	case OP_SWEEP_EDGE:
 	{
 	    uint32_t base = get_time_base(b->cfg);
-	    uint32_t now  = millis();
+	    uint32_t now  = GetTick();
 
 	    uint32_t TL = b->param_A * base;
 	    uint32_t TH = b->param_B * base;
@@ -452,10 +447,10 @@ void execute_block(Block16 *b, uint8_t i)
 				Generador aleatorio
 ========================================================= */
 
-	case OP_T_RANDOM:
+	case OP_RANDOM:
 	{
 	    uint32_t base = get_time_base(b->cfg);
-	    uint32_t now  = millis();
+	    uint32_t now  = GetTick();
 
 	    uint32_t TH = b->param_A * base;
 	    uint32_t TL = b->param_B * base;

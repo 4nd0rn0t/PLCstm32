@@ -18,14 +18,14 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include <config.h>
 #include "main.h"
+#include "stm32c0xx_it.h"
 
+#include "config.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
-#include "stm32c0xx_it.h"
 
 /* USER CODE END Includes */
 
@@ -62,7 +62,7 @@ void uart_process_byte(uint8_t byte);
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-//extern UART_HandleTypeDef huart1;
+
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -133,13 +133,11 @@ void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
 
-  /* USER CODE END SysTick_IRQn 0 */
- //
-//HAL_IncTick();
-
-/* USER CODE BEGIN SysTick_IRQn 1 */
-
 	msTicks++;
+
+  /* USER CODE END SysTick_IRQn 0 */
+
+  /* USER CODE BEGIN SysTick_IRQn 1 */
 
   /* USER CODE END SysTick_IRQn 1 */
 }
@@ -158,35 +156,14 @@ void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
 
+	 if (USART1->ISR & USART_ISR_RXNE_RXFNE)
+	    {
+	        uint8_t byte = (uint8_t)USART1->RDR;
+	        uart_process_byte(byte);
+	    }
+
   /* USER CODE END USART1_IRQn 0 */
-  //HAL_UART_IRQHandler(&huart1);
-
-
   /* USER CODE BEGIN USART1_IRQn 1 */
-
-	 // comprobar si hay dato recibido
-	/* RX */
-
-	//	volatile uint32_t debug = USART1->ISR;
-
-	    if (USART1->ISR & USART_ISR_RXNE_RXFNE)
-	    {
-	        uint8_t c = (uint8_t)USART1->RDR;
-
-	        while (!(USART1->ISR & USART_ISR_TXE_TXFNF));
-	        USART1->TDR = c;
-	    }
-
-	    /* LIMPIAR ERRORES (CRÍTICO) */
-	    uint32_t isr = USART1->ISR;
-
-	    if (isr & (USART_ISR_ORE | USART_ISR_FE | USART_ISR_NE))
-	    {
-	        USART1->ICR = USART_ICR_ORECF |
-	                      USART_ICR_FECF |
-	                      USART_ICR_NECF;
-	    }
-
 
   /* USER CODE END USART1_IRQn 1 */
 }

@@ -6,33 +6,22 @@
  */
 
 
-#include <string.h>
-
 #include "main.h"
 #include "terminal.h"
 
-
-//extern UART_HandleTypeDef huart1;
-
 static uint8_t ultima_I = 0xFF;
 static uint8_t ultima_Q  = 0xFF;
-static SystemMode_t ultimo_mode = MODE_STOP;
+static SystemMode_t ultimo_mode = MODE_UNKNOWN;
+
+//extern volatile uint32_t cont_serial;
 
 
-void UART_SendChar(char c)
+void UART_Print(const char *str)
 {
-    while (!(USART1->ISR & USART_ISR_TXE_TXFNF));
-    USART1->TDR = c;
-}
-
-
-void UART_Print(const char *s)
-{
-
-
-    while (*s)
+    while (*str)
     {
-        UART_SendChar(*s++);
+        while (!(USART1->ISR & USART_ISR_TXE_TXFNF));
+        USART1->TDR = *str++;
     }
 }
 
@@ -97,11 +86,43 @@ void MCP23017_PrintStatus(uint8_t inputs, uint8_t outputs, SystemMode_t mode)
 
 
 
+/*
+void UART_Print_U32(uint32_t num)
+{
+    char buf[11];          // máx 10 dígitos + '\0'
+    int i = 10;
+
+    buf[10] = '\0';
+
+    // caso especial 0
+    if (num == 0)
+    {
+        UART_Print("0");
+        return;
+    }
+
+    // convertir número a string (de atrás hacia delante)
+    while (num > 0)
+    {
+        buf[--i] = (num % 10) + '0';
+        num /= 10;
+    }
+
+    UART_Print(&buf[i]);
+}
+*/
 
 
+/*
+void UART_Print_demo(void)
+{
 
+    UART_Print("\r\nDemo: ");
+    UART_Print_U32(cont_serial);
 
-
+    cont_serial++ ;  // se incrementa cada vez que se ejecuta la función
+}
+*/
 
 
 

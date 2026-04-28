@@ -8,8 +8,6 @@
 #ifndef INC_PLC_APP_H_
 #define INC_PLC_APP_H_
 
-
-#include <config.h>
 #include "main.h"
 
 

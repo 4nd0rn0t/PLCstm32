@@ -10,8 +10,6 @@
 
 #include <stdint.h>
 
-
-
 /* =========================================================
 			Definición de flags del systema
 ========================================================= */
@@ -84,7 +82,8 @@ typedef enum {
     MODE_STOP = 0,
 	MODE_RUN,
     MODE_ERROR,
-    MODE_CARGA
+    MODE_CARGA,
+    MODE_UNKNOWN
  } SystemMode_t;
 
 /* =========================================================
@@ -121,10 +120,10 @@ typedef enum {
       OP_TON,
       OP_TOF,
       OP_TP,
-	  OP_T_BLINK,
-	  OP_T_SWEEP,
-	  OP_T_SWEEP_EDGE,
-	  OP_T_RANDOM,
+	  OP_BLINK,
+	  OP_SWEEP,
+	  OP_SWEEP_EDGE,
+	  OP_RANDOM,
 
       OP_CTU,
       OP_CTD,
@@ -137,13 +136,13 @@ typedef enum {
  	 	 	 Variable global
 ========================================================= */
 
-extern volatile uint32_t msTicks;
-uint32_t millis(void);
-
 extern volatile SystemMode_t mode;
 
 
+extern volatile uint32_t msTicks;
 
+uint32_t GetTick(void);
+void Delay_ms(uint32_t ms);
 
 
 

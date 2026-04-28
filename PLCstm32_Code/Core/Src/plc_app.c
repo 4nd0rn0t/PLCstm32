@@ -5,14 +5,12 @@
  *      Author: Yo
  */
 
-#include <config.h>
 #include <string.h>
 
 
 #include "plc_app.h"
 #include "plc_nucleo.h"
 #include "plc_flash.h"
-#include "bootloader.h"
 
 static uint32_t x;
 
@@ -52,8 +50,8 @@ void rng_init(void)
     uint32_t seed = 0;
 
     seed ^= get_uid();                 // único por chip
-    seed ^= millis();             // tiempo arranque
-    seed ^= (millis() << 16);     // variación extra
+    seed ^= GetTick();             // tiempo arranque
+    seed ^= (GetTick() << 16);     // variación extra
 
     x = seed; // inicializa xorshift
 }
@@ -105,8 +103,7 @@ uint8_t detectar_pulsacion(void)
 {
 	 static uint8_t last = 0;
 
-	// uint8_t current = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_8) == GPIO_PIN_RESET;
-	 uint8_t current = ((GPIOA->IDR & (1U << 8)) == 0U);
+	 uint8_t current = ((GPIOA->IDR & GPIO_IDR_ID8) == 0);
 	 uint8_t edge = (current == 1 && last == 0);
 	 last = current;
 	 return edge;
@@ -136,7 +133,7 @@ void actualizar_modo(void)
 void parpadeo_led(void)
 {
     static uint32_t last = 0;
-    uint32_t now = millis();
+    uint32_t now = GetTick();
 
     uint32_t period = 0;
 
@@ -152,8 +149,8 @@ void parpadeo_led(void)
     if (now - last >= period)
     {
         last = now;
-       // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_6);
-        GPIOB->ODR ^= (1U << 6); // hace toggle directo del bit
+
+        GPIOB->ODR ^= (1U << 6); // toggle directo del bit LED
     }
 }
 
@@ -187,6 +184,24 @@ uint32_t crc32_calc(uint8_t *data, uint32_t len)
 
     return ~crc;
 }
+
+
+uint32_t GetTick(void)
+{
+    return msTicks;
+}
+
+
+void Delay_ms(uint32_t ms)
+{
+    uint32_t start = msTicks;
+    while ((msTicks - start) < ms);
+}
+
+
+
+
+
 
 
 

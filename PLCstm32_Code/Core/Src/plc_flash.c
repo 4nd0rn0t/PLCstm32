@@ -5,12 +5,12 @@
  *      Author: Yo
  */
 
-#include <config.h>
 #include <string.h>
 
-#include "stm32c0xx_hal.h"
+//#include "stm32c0xx_hal.h"
 
 #include "plc_flash.h"
+#include "config.h"
 
 
 
@@ -37,7 +37,7 @@ const uint8_t user_program[] =
 		U16(5),
 		U16(0),
 
-		OP_T_RANDOM, CFG_TIME_10MS,
+		OP_RANDOM, CFG_TIME_10MS,
 		U16(SIG_I(2)),
 		U16(SIG_NONE),
 		U16(SIG_NONE),
@@ -50,6 +50,8 @@ const uint8_t user_program[] =
 
 
 
+
+
 void flash_erase_user_area(void);
 void flash_write_user(uint32_t addr, uint8_t *data, uint32_t size);
 void flash_read_user(uint32_t address, uint8_t *data, uint32_t size);
@@ -57,24 +59,24 @@ void flash_read_user(uint32_t address, uint8_t *data, uint32_t size);
 
 void flash_erase_user_area(void)
 {
-	HAL_FLASH_Unlock();
+//	HAL_FLASH_Unlock();
 
-    FLASH_EraseInitTypeDef erase;
-    uint32_t page_error;
+ //   FLASH_EraseInitTypeDef erase;
+  //  uint32_t page_error;
 
-    erase.TypeErase = FLASH_TYPEERASE_PAGES;
-    erase.Page = (USER_FLASH_START - FLASH_BASE) / FLASH_PAGE_SIZE;
-    erase.NbPages = USER_FLASH_PAGES;
+ //   erase.TypeErase = FLASH_TYPEERASE_PAGES;
+ //   erase.Page = (USER_FLASH_START - FLASH_BASE) / FLASH_PAGE_SIZE;
+ //   erase.NbPages = USER_FLASH_PAGES;
 
-    HAL_FLASHEx_Erase(&erase, &page_error);
+//    HAL_FLASHEx_Erase(&erase, &page_error);
 
-    HAL_FLASH_Lock();
+ //   HAL_FLASH_Lock();
 }
 
 
 void flash_write_user(uint32_t address, uint8_t *data, uint32_t size)
 {
-    HAL_FLASH_Unlock();
+ //   HAL_FLASH_Unlock();
 
     for (uint32_t i = 0; i < size; i += 8)
     {
@@ -85,10 +87,10 @@ void flash_write_user(uint32_t address, uint8_t *data, uint32_t size)
             val |= ((uint64_t)data[i + j]) << (8 * j);
         }
 
-        HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address + i, val);
+  //      HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address + i, val);
     }
 
-    HAL_FLASH_Lock();
+  //  HAL_FLASH_Lock();
 }
 
 

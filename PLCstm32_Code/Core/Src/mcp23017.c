@@ -10,220 +10,336 @@
 #include "mcp23017.h"
 
 
+// falta ver si leer bien las entradas
+
+
 #define I2C_TIMEOUT  1000
 
-
 static int I2C_WaitBusy(uint32_t timeout);
-static int I2C_WaitTX(uint32_t timeout);
-static int I2C_WaitRX(uint32_t timeout);
-static int I2C_WaitSTOP(uint32_t timeout);
+int MCP_WriteReg(uint8_t addr, uint8_t reg, uint8_t data);
+int MCP_ReadReg(uint8_t addr, uint8_t reg, uint8_t *data);
+
+void MCP23017_Init(void);
+int MCP_WritePortA(uint8_t value);
+uint8_t MCP23017_Check(void);
 
 
-//--------------------------------
-// ESPERAR BUS LIBRE
-//--------------------------------
+
+
+/*
+
+static int I2C_WaitBusy(uint32_t timeout)
+{
+    while (LL_I2C_IsActiveFlag_BUSY(I2C1))
+    {
+        if (--timeout == 0)
+            return -1;
+    }
+    return 0;
+}
+
+
+int MCP_WriteReg(uint8_t addr, uint8_t reg, uint8_t data)
+{
+    if (I2C_WaitBusy(I2C_TIMEOUT))
+        return -1;
+
+    LL_I2C_HandleTransfer(I2C1,
+                          (addr << 1),
+                          LL_I2C_ADDRSLAVE_7BIT,
+                          2,
+                          LL_I2C_MODE_AUTOEND,
+                          LL_I2C_GENERATE_START_WRITE);
+
+    // enviar registro
+    while (!LL_I2C_IsActiveFlag_TXIS(I2C1))
+        if (LL_I2C_IsActiveFlag_NACK(I2C1)) return -2;
+
+    LL_I2C_TransmitData8(I2C1, reg);
+
+    // enviar dato
+    while (!LL_I2C_IsActiveFlag_TXIS(I2C1))
+        if (LL_I2C_IsActiveFlag_NACK(I2C1)) return -2;
+
+    LL_I2C_TransmitData8(I2C1, data);
+
+    // STOP
+    while (!LL_I2C_IsActiveFlag_STOP(I2C1));
+    LL_I2C_ClearFlag_STOP(I2C1);
+
+    return 0;
+}
+
+
+
+int MCP_ReadReg(uint8_t addr, uint8_t reg, uint8_t *data)
+{
+    if (I2C_WaitBusy(I2C_TIMEOUT))
+        return -1;
+
+    // WRITE register address
+    LL_I2C_HandleTransfer(I2C1,
+                          (addr << 1),
+                          LL_I2C_ADDRSLAVE_7BIT,
+                          1,
+                          LL_I2C_MODE_SOFTEND,
+                          LL_I2C_GENERATE_START_WRITE);
+
+    while (!LL_I2C_IsActiveFlag_TXIS(I2C1));
+    LL_I2C_TransmitData8(I2C1, reg);
+
+    while (!LL_I2C_IsActiveFlag_TC(I2C1));
+
+    // READ data
+    LL_I2C_HandleTransfer(I2C1,
+                          (addr << 1),
+                          LL_I2C_ADDRSLAVE_7BIT,
+                          1,
+                          LL_I2C_MODE_AUTOEND,
+                          LL_I2C_GENERATE_START_READ);
+
+    while (!LL_I2C_IsActiveFlag_RXNE(I2C1));
+
+    *data = LL_I2C_ReceiveData8(I2C1);
+
+    while (!LL_I2C_IsActiveFlag_STOP(I2C1));
+    LL_I2C_ClearFlag_STOP(I2C1);
+
+    return 0;
+}
+
+
+
+void MCP23017_Init(void)
+{
+    MCP_WriteReg(MCP23017_ADDR, 0x00, 0x00); // GPIOA output
+    MCP_WriteReg(MCP23017_ADDR, 0x01, 0xFF); // GPIOB input
+    MCP_WriteReg(MCP23017_ADDR, 0x0D, 0xFF); // pull-up B
+}
+
+
+
+
+
+
+int MCP_WritePortA(uint8_t value)
+{
+    return MCP_WriteReg(MCP23017_ADDR, 0x14, value);
+}
+
+
+int MCP_ReadPortB(uint8_t *value)
+{
+    return MCP_ReadReg(MCP23017_ADDR, 0x13, value);
+}
+
+
+
+
+uint8_t MCP23017_Check(void)
+{
+    if (I2C_WaitBusy(I2C_TIMEOUT))
+        return 0;
+
+    LL_I2C_ClearFlag_NACK(I2C1);
+    LL_I2C_ClearFlag_STOP(I2C1);
+
+    LL_I2C_HandleTransfer(I2C1,
+                          MCP23017_ADDR << 1,
+                          LL_I2C_ADDRSLAVE_7BIT,
+                          0,
+                          LL_I2C_MODE_AUTOEND,
+                          LL_I2C_GENERATE_START_WRITE);
+
+    uint32_t t = I2C_TIMEOUT;
+
+    while (t--)
+    {
+        if (LL_I2C_IsActiveFlag_NACK(I2C1))
+        {
+            LL_I2C_ClearFlag_NACK(I2C1);
+            LL_I2C_ClearFlag_STOP(I2C1);
+            //return 0;
+            return system_flags &= ~MCP23017_OK_FLAG;   // No responde Flag a 0
+        }
+
+        if (LL_I2C_IsActiveFlag_STOP(I2C1))
+        {
+            LL_I2C_ClearFlag_STOP(I2C1);
+            //return 1;
+            return system_flags |= MCP23017_OK_FLAG;   // Si responde Flag a 1
+        }
+    }
+
+    //return 0;
+    return system_flags &= ~MCP23017_OK_FLAG;   // No responde Flag a 0
+}
+
+*/
+
+
+
+
 static int I2C_WaitBusy(uint32_t timeout)
 {
     while (I2C1->ISR & I2C_ISR_BUSY)
     {
-        if (timeout-- == 0)
-        {
-            // reset periférico I2C
-          //  I2C1->CR1 &= ~I2C_CR1_PE;
-           // I2C1->CR1 |= I2C_CR1_PE;
+        if (--timeout == 0)
             return -1;
-        }
     }
     return 0;
 }
 
-
-//--------------------------------
-// ESPERAR RX
-//--------------------------------
-static int I2C_WaitRX(uint32_t timeout)
+int MCP_WriteReg(uint8_t addr, uint8_t reg, uint8_t data)
 {
-    while (!(I2C1->ISR & I2C_ISR_RXNE))
-    {
-        // opcional: detectar NACK
-        if (I2C1->ISR & I2C_ISR_NACKF)
-        {
-            I2C1->ICR |= I2C_ICR_NACKCF;
-            I2C1->CR2 |= I2C_CR2_STOP;
-            return -1;
-        }
+    if (I2C_WaitBusy(I2C_TIMEOUT))
+        return -1;
 
-        if (timeout-- == 0)
-            return -2;
-    }
-    return 0;
-}
-
-//--------------------------------
-// ESPERAR TX
-//--------------------------------
-static int I2C_WaitTX(uint32_t timeout)
-{
-    while (!(I2C1->ISR & I2C_ISR_TXIS))
-    {
-        if (I2C1->ISR & I2C_ISR_NACKF)
-        {
-            I2C1->ICR |= I2C_ICR_NACKCF;
-            I2C1->CR2 |= I2C_CR2_STOP;
-            return -1;
-        }
-
-        if (timeout-- == 0)
-            return -2;
-    }
-    return 0;
-}
-
-//--------------------------------
-// ESPERAR STOP
-//--------------------------------
-static int I2C_WaitSTOP(uint32_t timeout)
-{
-    while (!(I2C1->ISR & I2C_ISR_STOPF))
-    {
-        if (timeout-- == 0)
-            return -1;
-    }
-
-    I2C1->ICR |= I2C_ICR_STOPCF; // limpiar flag
-    return 0;
-}
-
-
-
-//--------------------------------
-// WRITE (reg + dato)
-//--------------------------------
-static int I2C_WriteReg(uint8_t addr, uint8_t reg, uint8_t value)
-{
-    if (I2C_WaitBusy(I2C_TIMEOUT)) return -1;
-
+    // START + WRITE + 2 bytes
     I2C1->CR2 =
         (addr << 1) |
         (2 << I2C_CR2_NBYTES_Pos) |
-        I2C_CR2_START;
+        I2C_CR2_START |
+        I2C_CR2_AUTOEND;
 
-    if (I2C_WaitTX(I2C_TIMEOUT)) return -1;
+    // enviar REG
+    while (!(I2C1->ISR & I2C_ISR_TXIS))
+        if (I2C1->ISR & I2C_ISR_NACKF) return -2;
+
     I2C1->TXDR = reg;
 
-    if (I2C_WaitTX(I2C_TIMEOUT)) return -1;
-    I2C1->TXDR = value;
+    // enviar DATA
+    while (!(I2C1->ISR & I2C_ISR_TXIS))
+        if (I2C1->ISR & I2C_ISR_NACKF) return -2;
 
-    I2C1->CR2 |= I2C_CR2_STOP;
+    I2C1->TXDR = data;
 
-    if (I2C_WaitSTOP(I2C_TIMEOUT)) return -1;
+    // STOP automático (AUTOEND)
+
+    while (!(I2C1->ISR & I2C_ISR_STOPF));
+    I2C1->ICR |= I2C_ICR_STOPCF;
 
     return 0;
 }
 
-//--------------------------------
-// READ (1 byte)
-//--------------------------------
-static int I2C_ReadReg(uint8_t addr, uint8_t reg, uint8_t *value)
-{
-    if (I2C_WaitBusy(I2C_TIMEOUT)) return -1;
 
-    // 1. Enviar registro (WRITE)
+
+int MCP_ReadReg(uint8_t addr, uint8_t reg, uint8_t *data)
+{
+    if (I2C_WaitBusy(I2C_TIMEOUT))
+        return -1;
+
+    // FASE 1: escribir registro
     I2C1->CR2 =
-        (addr) |
+        (addr << 1) |
         (1 << I2C_CR2_NBYTES_Pos) |
         I2C_CR2_START;
 
-    if (I2C_WaitTX(I2C_TIMEOUT)) return -1;
+    while (!(I2C1->ISR & I2C_ISR_TXIS))
+        if (I2C1->ISR & I2C_ISR_NACKF) return -2;
+
     I2C1->TXDR = reg;
 
-    if (I2C_WaitTX(I2C_TIMEOUT)) return -1;
+    while (!(I2C1->ISR & I2C_ISR_TC));
 
-    // 2. REPEATED START + READ
+    // FASE 2: leer dato
     I2C1->CR2 =
-        (addr) |
+        (addr << 1) |
         (1 << I2C_CR2_NBYTES_Pos) |
         I2C_CR2_RD_WRN |
-        I2C_CR2_START;
+        I2C_CR2_START |
+        I2C_CR2_AUTOEND;
 
-    if (I2C_WaitRX(I2C_TIMEOUT)) return -1;
-    *value = I2C1->RXDR;
+    while (!(I2C1->ISR & I2C_ISR_RXNE));
 
-    if (I2C_WaitSTOP(I2C_TIMEOUT)) return -1;
+    *data = I2C1->RXDR;
+
+    while (!(I2C1->ISR & I2C_ISR_STOPF));
+    I2C1->ICR |= I2C_ICR_STOPCF;
 
     return 0;
 }
 
-//--------------------------------
-// 			INIT
-//--------------------------------
+
+
+
 void MCP23017_Init(void)
 {
-    I2C_WriteReg(MCP23017_ADDR, MCP23017_IODIRA, 0x00); // IODIRA salida
-    I2C_WriteReg(MCP23017_ADDR, MCP23017_IODIRB, 0xFF); // IODIRB entrada
-    I2C_WriteReg(MCP23017_ADDR, MCP23017_GPPUB, 0xFF); // GPPUB pull-up
+    MCP_WriteReg(MCP23017_ADDR, MCP23017_IODIRA, 0x00); // A output
+    MCP_WriteReg(MCP23017_ADDR, MCP23017_IODIRB, 0xFF); // B input
+    MCP_WriteReg(MCP23017_ADDR, MCP23017_GPPUB, 0xFF); // pull-up B
 }
 
-//--------------------------------
-// 			WRITE PORT A
-//--------------------------------
-int MCP23017_WritePortA(uint8_t value)
+
+
+
+int MCP_WritePortA(uint8_t value)
 {
-    int ret = I2C_WriteReg(MCP23017_ADDR, MCP23017_GPIOA, value);
-
-    if (ret != 0)
-        system_flags &= ~MCP23017_OK_FLAG;
-    else
-        system_flags |= MCP23017_OK_FLAG;
-
-    return ret;
+    return MCP_WriteReg(MCP23017_ADDR, MCP23017_GPIOB, value);
 }
 
-//--------------------------------
-// 			READ PORT B
-//--------------------------------
-int MCP23017_ReadPortB(uint8_t *value)
+int MCP_ReadPortB(uint8_t *value)
 {
-
-    int ret = I2C_ReadReg(MCP23017_ADDR, MCP23017_GPIOB, value);
-
-    if (ret != 0)
-        system_flags &= ~MCP23017_OK_FLAG;
-    else
-        system_flags |= MCP23017_OK_FLAG;
-
-    return ret;
+    return MCP_ReadReg(MCP23017_ADDR, MCP23017_GPIOA, value);
 }
 
 
-//--------------------------------
-// CHECK DEVICE
-//--------------------------------
+
+
 uint8_t MCP23017_Check(void)
 {
-    if (I2C_WaitBusy(I2C_TIMEOUT)) return 0;
+    if (I2C_WaitBusy(I2C_TIMEOUT))
+        return 0;
 
-    // limpiar flags antiguos por seguridad
     I2C1->ICR = I2C_ICR_NACKCF | I2C_ICR_STOPCF;
 
-    // configurar transferencia (WRITE probe)
     I2C1->CR2 =
         (MCP23017_ADDR << 1) |
-        (1 << I2C_CR2_NBYTES_Pos) |   // mínimo 1 byte ficticio
-        I2C_CR2_AUTOEND |
-        I2C_CR2_START;
+        I2C_CR2_START |
+        I2C_CR2_AUTOEND;
 
-    // esperar fin
-    while (!(I2C1->ISR & (I2C_ISR_STOPF | I2C_ISR_NACKF)));
+    uint32_t t = I2C_TIMEOUT;
 
-    if (I2C1->ISR & I2C_ISR_NACKF)
+    while (t--)
     {
-        I2C1->ICR = I2C_ICR_NACKCF | I2C_ICR_STOPCF;
-        return 0;
+        if (I2C1->ISR & I2C_ISR_NACKF)
+        {
+            I2C1->ICR |= I2C_ICR_NACKCF;
+          //  return 0;
+            return system_flags &= ~MCP23017_OK_FLAG;   // No responde Flag a 0
+        }
+
+        if (I2C1->ISR & I2C_ISR_STOPF)
+        {
+            I2C1->ICR |= I2C_ICR_STOPCF;
+            //return 1;
+            return system_flags |= MCP23017_OK_FLAG;   // Si responde Flag a 1
+        }
     }
 
-    I2C1->ICR = I2C_ICR_STOPCF;
-    return 1;
+   // return 0;
+    return system_flags &= ~MCP23017_OK_FLAG;   // No responde Flag a 0
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

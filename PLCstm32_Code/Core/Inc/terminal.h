@@ -8,11 +8,9 @@
 #ifndef INC_TERMINAL_H_
 #define INC_TERMINAL_H_
 
-#include <config.h>
-#include <stdint.h>
 
+#include "config.h"
 
-//void UART_Print(char *msg);
 const char* MCP23017_ModeToString(SystemMode_t mode);
 void MCP23017_PrintStatus(uint8_t inputs, uint8_t outputs, SystemMode_t mode);
 void Terminal_Imprimir(uint8_t entradas, uint8_t salidas, SystemMode_t mode);

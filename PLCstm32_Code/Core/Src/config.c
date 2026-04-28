@@ -5,10 +5,11 @@
  *      Author: Yo
  */
 
-#include <config.h>
+
+#include "config.h"
+
 #include "main.h"
 
-#include "stm32c0xx.h"
 
 /* =========================================================
 			Definición
@@ -22,202 +23,160 @@ volatile uint64_t M = 0;
 
 volatile SystemMode_t mode = MODE_STOP;
 
-
-uint32_t GetPCLK2Freq(void);
+volatile uint32_t msTicks = 0;
 
 
 void SystemClock_Config(void)
 {
 
+	FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY) | FLASH_ACR_LATENCY_1;		/* 1. Configurar latencia de FLASH (NO pisar otros bits) */
 
-	 // Encender HSI
-	    RCC->CR |= RCC_CR_HSION;
-	    while (!(RCC->CR & RCC_CR_HSIRDY));
-
-	    // Seleccionar HSI como SYSCLK
-	    RCC->CFGR &= ~RCC_CFGR_SW;
-
-	    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI);
-
-	    SystemCoreClockUpdate();
+	RCC->CR |= RCC_CR_HSION;
+	while (!(RCC->CR & RCC_CR_HSIRDY))		// HSI ON + esperar listo
+	{
 	}
 
 
+	RCC->ICSCR = (RCC->ICSCR & ~RCC_ICSCR_HSITRIM_Msk) | (64 << RCC_ICSCR_HSITRIM_Pos);	// Calibración HSI 64 por ejemplo
 
+	RCC->CR &= ~RCC_CR_HSIDIV;		// HSI sin divisor (DIV1)
 
+	RCC->CFGR &= ~RCC_CFGR_HPRE;  //  AHB prescaler = 1
 
+  /* SYSCLK = HSI */
+	RCC->CFGR &= ~(3U << RCC_CFGR_SW_Pos);
+	RCC->CFGR |=  (0U << RCC_CFGR_SW_Pos);   // SYSCLK = HSI (en C0: valor = 0)
 
+	while (((RCC->CFGR >> RCC_CFGR_SWS_Pos) & 0x3U) != 0U)
+	{
+	}
 
+	RCC->CFGR &= ~RCC_CFGR_PPRE;		// APB1 prescaler = 1
 
+	SysTick->LOAD = (48000000 / 1000) - 1;
+	SysTick->VAL  = 0;
+	SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk |
+	                 SysTick_CTRL_TICKINT_Msk   |
+	                 SysTick_CTRL_ENABLE_Msk;				// Configurar SysTick a 1 ms (48 MHz)
 
+	SystemCoreClock = 48000000;		// Actualizar variable global
 
+}
 
 
 void GPIO_Init(void)
 {
-
-    RCC->IOPENR |= RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN | RCC_IOPENR_GPIOFEN;	// Enable clocks
+    /* Clock */
+    RCC->IOPENR |= RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN | RCC_IOPENR_GPIOFEN;
 
     // ========================
-    // LED PB6
+    // LED PB6 (active LOW)
     // ========================
 
-    GPIOB->BSRR = GPIO_BSRR_BS6;   													// apagar LED (poner HIGH porque es active-low)
-    GPIOB->MODER = (GPIOB->MODER & ~GPIO_MODER_MODE6_Msk) | GPIO_MODER_MODE6_0;  	// configurar como salida
-    GPIOB->OTYPER &= ~GPIO_OTYPER_OT6_Msk;											// push-pull
-    GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD6_Msk;											// no pull
-    GPIOB->OSPEEDR = (GPIOB->OSPEEDR & ~GPIO_OSPEEDR_OSPEED6_Msk) | GPIO_OSPEEDR_OSPEED6_1;	// high speed
+    /* Configurar como salida */
+    GPIOB->MODER = (GPIOB->MODER & ~GPIO_MODER_MODE6_Msk) | GPIO_MODER_MODE6_0;
+
+    /* Push-pull */
+    GPIOB->OTYPER &= ~GPIO_OTYPER_OT6_Msk;
+
+    /* Sin pull */
+    GPIOB->PUPDR &= ~GPIO_PUPDR_PUPD6_Msk;
+
+    /* Velocidad alta */
+    GPIOB->OSPEEDR = (GPIOB->OSPEEDR & ~GPIO_OSPEEDR_OSPEED6_Msk) | GPIO_OSPEEDR_OSPEED6_1;
+
+    /* Apagar LED (activo en LOW) */
+    GPIOB->BSRR = GPIO_BSRR_BS6;
 
     // ========================
     // Pulsador PA8
     // ========================
+
+    /* Input */
     GPIOA->MODER &= ~GPIO_MODER_MODE8_Msk;
-    GPIOA->PUPDR = (GPIOA->PUPDR & ~GPIO_PUPDR_PUPD8_Msk) | GPIO_PUPDR_PUPD8_0;
 
+    /* Pull-up */
+    GPIOA->PUPDR = (GPIOA->PUPDR & ~GPIO_PUPDR_PUPD8_Msk) |
+                   GPIO_PUPDR_PUPD8_0;
 }
 
 
-
-
-void I2C1_Init(void)
- {
-
-	 /* CLOCKS */
-	    RCC->IOPENR |= RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN;
-	    RCC->APBENR1 |= RCC_APBENR1_I2C1EN;
-
-	    /* RESET */
-	    RCC->APBRSTR1 |= RCC_APBRSTR1_I2C1RST;
-	    RCC->APBRSTR1 &= ~RCC_APBRSTR1_I2C1RST;
-
-	    /* GPIO PB7 SCL / PC14 SDA */
-	    GPIOB->MODER |= (2U << (7*2));
-	    GPIOB->OTYPER |= (1U << 7);
-	    GPIOB->PUPDR |= (1U << (7*2));
-	    GPIOB->AFR[0] |= (6U << (7*4));
-
-	    GPIOC->MODER |= (2U << (14*2));
-	    GPIOC->OTYPER |= (1U << 14);
-	    GPIOC->PUPDR |= (1U << (14*2));
-	    GPIOC->AFR[1] |= (6U << ((14-8)*4));
-
-	    /* Disable peripheral */
-	    I2C1->CR1 &= ~I2C_CR1_PE;
-
-	    /* TIMING (100kHz típico correcto C0 @48MHz) */
-	    I2C1->TIMINGR = 0x00303D5B;
-
-	    /* FILTERS */
-	    I2C1->CR1 &= ~I2C_CR1_ANFOFF;
-	    I2C1->CR1 &= ~(0xF << I2C_CR1_DNF_Pos);
-
-	    I2C1->ICR = 0xFFFFFFFF;
-
-	    /* ENABLE */
-	    I2C1->CR1 |= I2C_CR1_PE;
-
-}
-
-
-
-
-void UART1_Init(void)
+void USART1_Init(void)
 {
-    /* ========= CLOCKS ========= */
-    RCC->IOPENR  |= RCC_IOPENR_GPIOAEN;		// GPIOA
-    RCC->APBENR2 |= RCC_APBENR2_USART1EN;	// USART1
+    /* Clocks */
+    RCC->IOPENR  |= RCC_IOPENR_GPIOAEN;
+    RCC->APBENR2 |= RCC_APBENR2_USART1EN;
 
-    /* RESET USART */
-    RCC->APBRSTR2 |= RCC_APBRSTR2_USART1RST;
-    RCC->APBRSTR2 &= ~RCC_APBRSTR2_USART1RST;
+    /* PA9 TX */
+    GPIOA->MODER &= ~(3U << (9 * 2));
+    GPIOA->MODER |=  (2U << (9 * 2));
+    GPIOA->AFR[1] &= ~(0xF << 4);
+    GPIOA->AFR[1] |=  (1U << 4);
+    GPIOA->OTYPER &= ~(1U << 9);
+    GPIOA->PUPDR  &= ~(3U << (9 * 2));
 
-    /* CLOCK SOURCE = PCLK */
-   // RCC->CCIPR &= ~(3U << RCC_CCIPR_USART1SEL_Pos);
-  //  RCC->CCIPR |=  (0U << RCC_CCIPR_USART1SEL_Pos);
+    /* PA10 RX */
+    GPIOA->MODER &= ~(3U << (10 * 2));
+    GPIOA->MODER |=  (2U << (10 * 2));
+    GPIOA->AFR[1] &= ~(0xF << 8);
+    GPIOA->AFR[1] |=  (1U << 8);
+    GPIOA->PUPDR  &= ~(3U << (10 * 2));
 
-    RCC->CCIPR &= ~(3U << RCC_CCIPR_USART1SEL_Pos);
-
-    /* ========= GPIO ========= */
-
-    MODIFY_REG(GPIOA->MODER,
-               GPIO_MODER_MODE9_Msk | GPIO_MODER_MODE10_Msk,
-               GPIO_MODER_MODE9_1 | GPIO_MODER_MODE10_1);
-
-    MODIFY_REG(GPIOA->AFR[1],
-               GPIO_AFRH_AFSEL9_Msk | GPIO_AFRH_AFSEL10_Msk,
-               (1U << GPIO_AFRH_AFSEL9_Pos) | (1U << GPIO_AFRH_AFSEL10_Pos));
-
-    MODIFY_REG(GPIOA->PUPDR,
-               GPIO_PUPDR_PUPD10_Msk,
-               GPIO_PUPDR_PUPD10_0);
-
-
-    /*
-    // PA9 TX / PA10 RX
-    GPIOA->MODER &= ~((3U << (9*2)) | (3U << (10*2)));
-    GPIOA->MODER |=  ((2U << (9*2)) | (2U << (10*2))); // AF mode
-
-    GPIOA->AFR[1] &= ~((0xFU << 4) | (0xFU << 8));
-    GPIOA->AFR[1] |=  ((1U << 4) | (1U << 8)); // AF1 USART1
-
-    GPIOA->PUPDR &= ~(3U << (10*2));
-    GPIOA->PUPDR |=  (1U << (10*2)); // RX pull-up
-*/
-
-    /* ========= UART RESET STATE ========= */
+    /* USART config */
     USART1->CR1 = 0;
     USART1->CR2 = 0;
     USART1->CR3 = 0;
 
-    /* DESACTIVAR FIFO */
-    USART1->CR1 &= ~USART_CR1_FIFOEN;
-
-    // LIMPIAR FLAGS (
-    USART1->ICR = 0xFFFFFFFF;
-
-    /* BAUD */
     USART1->BRR = SystemCoreClock / 115200;
 
+    USART1->CR2 &= ~USART_CR2_STOP;
 
-    // Enable RX + TX
-    USART1->CR1 |= USART_CR1_RE | USART_CR1_TE;
+    USART1->CR1 &= ~(USART_CR1_M0 | USART_CR1_M1);
+    USART1->CR1 &= ~USART_CR1_PCE;
 
+    USART1->CR1 |= USART_CR1_TE | USART_CR1_RE;
 
-    // Enable interrupt RX
+    USART1->CR1 |= USART_CR1_UE;
+
+    /* wait ready */
+    while (!(USART1->ISR & USART_ISR_TEACK)) {}
+    while (!(USART1->ISR & USART_ISR_REACK)) {}
+
     USART1->CR1 |= USART_CR1_RXNEIE_RXFNEIE;
+    NVIC_EnableIRQ(USART1_IRQn);				// habilitar RX interrupt
 
-
-    USART1->CR1 |= USART_CR1_UE; // USART enable
-
-    // NVIC
-    NVIC_EnableIRQ(USART1_IRQn);
 
 }
 
 
-
-
-void UART1_EnableIRQ(void)
+void I2C1_Init(void)
 {
- 	USART1->CR1 |= USART_CR1_RXNEIE_RXFNEIE;  	 // habilitar interrupción RX
-	NVIC_EnableIRQ(USART1_IRQn);		 		 // habilitar NVIC
-}
+    /* Clock */
+    RCC->APBENR1 |= RCC_APBENR1_I2C1EN;
+    RCC->IOPENR  |= RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN;
 
+    /* PB7 SCL AF14 open-drain */
+    GPIOB->MODER &= ~(3U << (7*2));
+    GPIOB->MODER |=  (2U << (7*2));
+    GPIOB->OTYPER |= (1U << 7);
+    GPIOB->AFR[0] &= ~(0xFU << (7*4));
+    GPIOB->AFR[0] |=  (14U << (7*4));
 
+    /* PC14 SDA AF14 open-drain */
+    GPIOC->MODER &= ~(3U << (14*2));
+    GPIOC->MODER |=  (2U << (14*2));
+    GPIOC->OTYPER |= (1U << 14);
+    GPIOC->AFR[1] &= ~(0xFU << ((14-8)*4));
+    GPIOC->AFR[1] |=  (14U << ((14-8)*4));
 
+    /* Disable peripheral */
+    I2C1->CR1 &= ~I2C_CR1_PE;
 
-volatile uint32_t msTicks = 0;
+    /* Timing (CRÍTICO) */
+    I2C1->TIMINGR = 0x0090194B;
 
-uint32_t millis(void)
-{
-    return msTicks;
-}
-
-
-void delay_ms(uint32_t ms)
-{
-    uint32_t start = millis();
-    while ((millis() - start) < ms);
+    /* Enable I2C */
+    I2C1->CR1 |= I2C_CR1_PE;
 }
 
 
